@@ -35,8 +35,11 @@ define(function (require, exports, module) {
     
     // Load dependent modules
     var CodeInspection     = brackets.getModule("language/CodeInspection"),
+        DocumentManager    = brackets.getModule("document/DocumentManager"),
         Editor             = brackets.getModule("editor/Editor").Editor,
+        FileSystem         = brackets.getModule("filesystem/FileSystem"),
         PreferencesManager = brackets.getModule("preferences/PreferencesManager"),
+        ProjectManager     = brackets.getModule("project/ProjectManager"),
         Strings            = brackets.getModule("strings"),
         _                  = brackets.getModule("thirdparty/lodash");
     
@@ -58,6 +61,71 @@ define(function (require, exports, module) {
             }
         });
     
+    
+    /**
+     * @private
+     * @type {string}
+     */
+    var _configFileName = ".jslint.json";
+ 
+    /**
+     * @private
+     * @type {object}
+     */
+    var _jsLintConfig = null;
+ 
+    /**
+     * Load project-wide JSLint configuration.
+     *
+     * Brackets JSLint configuration should be in JSON format, with all the
+     * JSLint options specified according to JSLint documentation.
+     * 
+     * JSLint project file should be located at <Project Root>/.jslint.json . It
+     * is loaded each time project is changed or the configuration file is
+     * modified.
+     * 
+     * @return Promise to return JSLint configuration object.
+     *
+     * @see <a href="http://www.jslint.com/lint.html#options">JSLint option
+     * reference</a>.
+     */
+    function _loadProjectConfig(file) {
+        if( file ){
+            file.read(function(err, text){
+                var config;
+                if( text ){
+                    try {
+                        config = JSON.parse(text);
+                        _jsLintConfig = config;
+                        console.log('jslint: loaded config from %s: %s', file.fullPath, _jsLintConfig);
+                    }
+                    catch(e) {
+                        console.log('jslint: error: %s', e);
+                    }
+                    
+                }
+                else {
+                    console.log('jslint: could not load config from %s', file.fullPath);
+                    _jsLintConfig = null;
+                }
+            });
+        }
+        else {
+            console.log('jslint: could not find config file.');
+            _jsLintConfig = null;
+        }
+    }
+    
+    ProjectManager.on("projectOpen projectRefresh", function(e){
+        var projectRootEntry = ProjectManager.getProjectRoot();
+//        console.log('jslint: loaded project root %s', projectRootEntry.fullPath);
+        var fileName = projectRootEntry.fullPath + _configFileName;
+//        console.log('jslint: loaded config file name %s', fileName);
+        var file = FileSystem.getFileForPath(fileName);
+        console.log('jslint: loaded file %s', file.fullPath);
+        _loadProjectConfig(file);
+    });
+   
     // Predefined environments understood by JSLint.
     var ENVIRONMENTS = ["browser", "node", "couch", "rhino"];
     
@@ -74,7 +142,7 @@ define(function (require, exports, module) {
         // If a line contains only whitespace (here spaces or tabs), remove the whitespace
         text = text.replace(/^[ \t]+$/gm, "");
         
-        var options = prefs.get("options");
+        var options = _jsLintConfig || prefs.get("options");
 
         _lastRunOptions = _.clone(options);
         
@@ -128,6 +196,10 @@ define(function (require, exports, module) {
     
     // Register for JS files
     CodeInspection.register("javascript", {
+        name: Strings.JSLINT_NAME,
+        scanFile: lintOneFile
+    });
+    CodeInspection.register("json", {
         name: Strings.JSLINT_NAME,
         scanFile: lintOneFile
     });
