@@ -35,6 +35,8 @@ define(function (require, exports, module) {
     
     // Load dependent modules
     var CodeInspection     = brackets.getModule("language/CodeInspection"),
+        CommandManager     = brackets.getModule("command/CommandManager"),
+        Commands           = brackets.getModule("command/Commands"),
         DocumentManager    = brackets.getModule("document/DocumentManager"),
         Editor             = brackets.getModule("editor/Editor").Editor,
         FileSystem         = brackets.getModule("filesystem/FileSystem"),
@@ -97,41 +99,59 @@ define(function (require, exports, module) {
                     try {
                         config = JSON.parse(text);
                         _jsLintConfig = config;
-                        console.log('jslint: loaded config from %s: %s', file.fullPath, _jsLintConfig);
+//                        console.log('jslint: loaded config from %s: %s', file.fullPath, _jsLintConfig);
                     } catch (e) {
                         console.log('jslint: error: %s', e);
                     }
                     
                 } else {
-                    console.log('jslint: could not load config from %s', file.fullPath);
+//                    console.log('jslint: could not load config from %s', file.fullPath);
                     _jsLintConfig = null;
                 }
             });
         } else {
-            console.log('jslint: could not find config file.');
+//            console.log('jslint: could not find config file.');
             _jsLintConfig = null;
         }
     }
-    var projectRootEntry,
+    var projectRoot,
         configFileName,
         configFile;
     
-    ProjectManager.on("projectOpen projectRefresh", function (e) {
-        projectRootEntry = ProjectManager.getProjectRoot();
-//        console.log('jslint: loaded project root %s', projectRootEntry.fullPath);
-        configFileName = projectRootEntry.fullPath + _configFileName;
-//        console.log('jslint: loaded config file name %s', fileName);
-        configFile = FileSystem.getFileForPath(configFileName);
-//        console.log('jslint: loaded file %s', configFile.fullPath);
-        _loadProjectConfig(configFile);
-    });
-   
-    DocumentManager.on("documentSaved documentRefreshed", function (e, doc) {
-        if (configFileName === doc.file.fullPath) {
-//            console.log('jslint: reloading file %s', configFile.fullPath);
-            _loadProjectConfig(configFile);
+    function _updateListeners(enabled) {
+        if (enabled) {
+            ProjectManager.on("projectOpen.jslint projectRefresh.jslint", function (e) {
+                projectRoot = ProjectManager.getProjectRoot();
+//                console.log('jslint: loaded project root %s', projectRootEntry.fullPath);
+                configFileName = projectRoot.fullPath + _configFileName;
+//                console.log('jslint: loaded config file name %s', fileName);
+                configFile = FileSystem.getFileForPath(configFileName);
+//                console.log('jslint: loaded file %s', configFile.fullPath);
+                _loadProjectConfig(configFile);
+            });
+
+            DocumentManager.on("documentSaved.jslint documentRefreshed.jslint", function (e, doc) {
+                if (configFileName === doc.file.fullPath) {
+//                    console.log('jslint: reloading file %s', configFile.fullPath);
+                    _loadProjectConfig(configFile);
+                }
+            });
+            if (configFile && !_jsLintConfig) {
+                _loadProjectConfig(configFile);
+            }
+        } else {
+            _jsLintConfig = null;
+            ProjectManager.off('.jslint');
+            DocumentManager.off('.jslint');
         }
+    }
+    
+    _updateListeners(CodeInspection.toggleEnabled);
+    CommandManager.get(Commands.VIEW_TOGGLE_INSPECTION).on("checkedStateChange.jslint", function (event) {
+        var enabled = event.target._checked;
+        _updateListeners(enabled);
     });
+    
     
     // Predefined environments understood by JSLint.
     var ENVIRONMENTS = ["browser", "node", "couch", "rhino"];
