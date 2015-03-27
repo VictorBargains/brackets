@@ -363,11 +363,9 @@ define({
 	"CMD_ADD_NEXT_MATCH": "Ajouter l’occurrence suivante à la sélection",
 	"CMD_SKIP_CURRENT_MATCH": "Ignorer et ajouter l’occurrence suivante",
 	"CMD_FIND_IN_FILES": "Rechercher dans les fichiers",
-	"CMD_FIND_IN_SELECTED": "Rechercher dans le fichier/dossier sélectionné",
 	"CMD_FIND_IN_SUBTREE": "Rechercher dans\u2026",
 	"CMD_REPLACE": "Remplacer",
 	"CMD_REPLACE_IN_FILES": "Remplacer dans les fichiers",
-	"CMD_REPLACE_IN_SELECTED": "Remplacer dans le fichier/dossier sélectionné",
 	"CMD_REPLACE_IN_SUBTREE": "Remplacer dans\u2026",
 
     // View menu commands
@@ -507,7 +505,7 @@ define({
 	"UNSUPPORTED_PROTOCOL": "L’URL doit commencer par http ou https.",
 	"UNKNOWN_ERROR": "Erreur interne inconnue.",
     // For NOT_FOUND_ERR, see generic strings above
-	"EXTENSION_MANAGER_TITLE": "Le gestionnaire d'extensions",
+	"EXTENSION_MANAGER_TITLE": "Gestionnaire d’extensions",
 	"EXTENSION_MANAGER_ERROR_LOAD": "Impossible d’accéder au registre de l’extension. Réessayez ultérieurement.",
 	"INSTALL_EXTENSION_DRAG": "Faire glisser le fichier .zip ici ou",
 	"INSTALL_EXTENSION_DROP": "Déposer le fichier .zip pour lancer l’installation",
