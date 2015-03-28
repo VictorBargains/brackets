@@ -67,12 +67,21 @@ define(function (require, exports, module) {
     /**
      * @private
      * @type {string}
+     * @desc The filename which will be searched for in <ProjectRoot> to load project-wide JSLint settings from.
      */
     var _configFileName = ".jslint.json";
  
     /**
      * @private
+     * @type {File}
+     * @desc The File object which references the file named _configFileName in the <ProjectRoot>.
+     */
+    var _configFile;
+ 
+    /**
+     * @private
      * @type {object}
+     * Could be integrated into the "jslint" prefs via PreferencesManager, but for now overrides those preferences if _configFileName is present in <ProjectRoot>.
      */
     var _jsLintConfig = null;
  
@@ -99,45 +108,35 @@ define(function (require, exports, module) {
                     try {
                         config = JSON.parse(text);
                         _jsLintConfig = config;
-//                        console.log('jslint: loaded config from %s: %s', file.fullPath, _jsLintConfig);
                     } catch (e) {
-                        console.log('jslint: error: %s', e);
+                        console.log('jslint: project-config: error: %s', e);
                     }
                     
                 } else {
-//                    console.log('jslint: could not load config from %s', file.fullPath);
                     _jsLintConfig = null;
                 }
             });
         } else {
-//            console.log('jslint: could not find config file.');
             _jsLintConfig = null;
         }
     }
-    var projectRoot,
-        configFileName,
-        configFile;
     
     function _updateListeners(enabled) {
         if (enabled) {
             ProjectManager.on("projectOpen.jslint projectRefresh.jslint", function (e) {
-                projectRoot = ProjectManager.getProjectRoot();
-//                console.log('jslint: loaded project root %s', projectRootEntry.fullPath);
-                configFileName = projectRoot.fullPath + _configFileName;
-//                console.log('jslint: loaded config file name %s', fileName);
-                configFile = FileSystem.getFileForPath(configFileName);
-//                console.log('jslint: loaded file %s', configFile.fullPath);
-                _loadProjectConfig(configFile);
+                var configFilePath = ProjectManager.getProjectRoot().fullPath + _configFileName;
+                _configFile = FileSystem.getFileForPath(configFilePath);
+                _loadProjectConfig(_configFile);
             });
 
             DocumentManager.on("documentSaved.jslint documentRefreshed.jslint", function (e, doc) {
-                if (configFileName === doc.file.fullPath) {
-//                    console.log('jslint: reloading file %s', configFile.fullPath);
-                    _loadProjectConfig(configFile);
+                if (_configFile && _configFile.fullPath === doc.file.fullPath) {
+                    _loadProjectConfig(_configFile);
                 }
             });
-            if (configFile && !_jsLintConfig) {
-                _loadProjectConfig(configFile);
+            
+            if (_configFile && !_jsLintConfig) {
+                _loadProjectConfig(_configFile);
             }
         } else {
             _jsLintConfig = null;
@@ -226,6 +225,7 @@ define(function (require, exports, module) {
         name: Strings.JSLINT_NAME,
         scanFile: lintOneFile
     });
+    // Register for JSON files
     CodeInspection.register("json", {
         name: Strings.JSLINT_NAME,
         scanFile: lintOneFile
